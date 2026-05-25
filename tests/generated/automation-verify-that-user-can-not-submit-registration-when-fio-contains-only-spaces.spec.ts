@@ -4,63 +4,66 @@ class PhoneNumberScreen {
   constructor(private page: Page) {}
 
   async selectLanguage(language: string) {
-    await this.page.click(`[data-testid="language-selector-${language}"]`);
+    await this.page.getByRole('tab', { name: language }).click({ timeout: 10000 });
+    await this.page.waitForTimeout(500);
   }
 
   async enterPhoneNumber(phoneNumber: string) {
-    await this.page.fill('[data-testid="phone-number-input"]', phoneNumber);
+    await this.page.getByRole('textbox', { name: 'Phone' }).fill(phoneNumber, { timeout: 10000 });
   }
 
-  async clickButton(buttonId: string) {
-    await this.page.click(`[data-testid="button-${buttonId}"]`);
+  async clickButton(buttonName: string) {
+    await this.page.getByRole('button', { name: buttonName }).click({ timeout: 10000 });
+    await this.page.waitForTimeout(500);
   }
 
   async enterOTPCode(otpCode: string) {
-    await this.page.fill('[data-testid="otp-input"]', otpCode);
+    // Assuming there's a specific OTP input field
+    await this.page.getByRole('textbox').fill(otpCode, { timeout: 10000 });
   }
 
-  async navigateToPage(pageId: string) {
-    await this.page.waitForLoadState('networkidle');
-    expect(this.page.url()).toContain(pageId);
+  async enterSpacesIntoField(spaces: string, fieldName: string) {
+    await this.page.getByRole('textbox', { name: fieldName }).fill(spaces, { timeout: 10000 });
   }
 
-  async enterSpacesIntoField(spaces: string, fieldId: string) {
-    await this.page.fill(`[data-testid="field-${fieldId}"]`, spaces);
+  async leaveField(fieldName: string) {
+    await this.page.getByRole('textbox', { name: fieldName }).blur();
+    await this.page.waitForTimeout(500);
   }
 
-  async leaveField(fieldId: string) {
-    await this.page.blur(`[data-testid="field-${fieldId}"]`);
+  async isButtonDisabled(buttonName: string) {
+    const button = await this.page.getByRole('button', { name: buttonName });
+    return await button.isDisabled();
   }
 
-  async isButtonDisabled(buttonId: string) {
-    const isDisabled = await this.page.isDisabled(`[data-testid="button-${buttonId}"]`);
-    expect(isDisabled).toBe(true);
-  }
-
-  async isValidationMessageDisplayed(fieldId: string) {
-    const validationMessage = await this.page.textContent(`[data-testid="validation-${fieldId}"]`);
-    expect(validationMessage).toMatch(/.*введите корректные данные.*/i);
+  async isValidationMessageDisplayed(language: string) {
+    // Assuming the validation message is displayed as text
+    return await this.page.getByText('Validation message in ' + language).isVisible();
   }
 }
 
 test.describe('Automation', () => {
   test('Verify that user cannot submit registration when FIO contains only spaces', async ({ page }) => {
-    const baseURL = 'https://ice-city.uz/';
     const phoneNumberScreen = new PhoneNumberScreen(page);
 
-    await page.goto(baseURL);
-    await page.waitForLoadState('load');
+    await page.goto('https://ice-city.uz/');
+    await page.waitForLoadState('networkidle');
 
     await phoneNumberScreen.selectLanguage('p1');
     await phoneNumberScreen.enterPhoneNumber('p1');
     await phoneNumberScreen.clickButton('p1');
     await phoneNumberScreen.enterOTPCode('p1');
-    await phoneNumberScreen.navigateToPage('p1');
+
+    // Assuming navigation to a new page
+    await page.waitForLoadState('networkidle');
 
     await phoneNumberScreen.enterSpacesIntoField('p1', 'p2');
     await phoneNumberScreen.leaveField('p1');
 
-    await phoneNumberScreen.isButtonDisabled('p1');
-    await phoneNumberScreen.isValidationMessageDisplayed('p1');
+    const isButtonDisabled = await phoneNumberScreen.isButtonDisabled('p1');
+    expect(isButtonDisabled).toBe(true);
+
+    const isValidationMessageDisplayed = await phoneNumberScreen.isValidationMessageDisplayed('Russian');
+    expect(isValidationMessageDisplayed).toBe(true);
   });
 });

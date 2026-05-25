@@ -1,57 +1,54 @@
 import { test, expect, Page } from '@playwright/test';
 
-class PhoneNumberPage {
-  constructor(private page: Page) {}
+class PhoneNumberScreen {
+  readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
 
   async open() {
-    await this.page.goto('https://ice-city.uz/phone-number');
+    await this.page.goto('https://ice-city.uz/');
     await this.page.waitForLoadState('networkidle');
   }
 
   async selectLanguage(language: string) {
-    await this.page.selectOption('[data-testid="language-select"]', language);
+    await this.page.getByRole('tab', { name: language }).click({ timeout: 10000 });
+    await this.page.waitForTimeout(500);
   }
 
   async enterPhoneNumber(phoneNumber: string) {
-    await this.page.fill('[data-testid="phone-input"]', phoneNumber);
+    await this.page.getByRole('textbox', { name: 'Phone' }).fill(phoneNumber, { timeout: 10000 });
   }
 
-  async clickButton(buttonText: string) {
-    await this.page.click(`button:has-text("${buttonText}")`);
+  async clickButton(buttonName: string) {
+    await this.page.getByRole('button', { name: buttonName }).click({ timeout: 10000 });
+    await this.page.waitForTimeout(500);
   }
 
-  async getErrorMessage(): Promise<string> {
-    return await this.page.textContent('[data-testid="error-message"]');
+  async verifyErrorMessage(errorMessage: string) {
+    await expect(this.page.getByText(errorMessage)).toBeVisible({ timeout: 10000 });
   }
 
-  async isOnPhoneNumberScreen(): Promise<boolean> {
-    return await this.page.isVisible('[data-testid="phone-input"]');
+  async verifyOnPhoneNumberScreen() {
+    await expect(this.page.getByRole('textbox', { name: 'Phone' })).toBeVisible({ timeout: 10000 });
   }
 
-  async isOnOTPVerificationScreen(): Promise<boolean> {
-    return await this.page.isVisible('[data-testid="otp-input"]');
+  async verifyNotOnOtpScreen() {
+    await expect(this.page.getByText('OTP Verification')).not.toBeVisible({ timeout: 10000 });
   }
 }
 
 test.describe('Automation', () => {
-  test('Verify that user cannot submit with incomplete phone number', async ({ page }) => {
-    const phoneNumberPage = new PhoneNumberPage(page);
+  test('Verify that user can not submit with incomplete phone number', async ({ page }) => {
+    const phoneNumberScreen = new PhoneNumberScreen(page);
 
-    await phoneNumberPage.open();
-
-    await phoneNumberPage.selectLanguage('p1');
-
-    await phoneNumberPage.enterPhoneNumber('p1');
-
-    await phoneNumberPage.clickButton('p1');
-
-    const errorMessage = await phoneNumberPage.getErrorMessage();
-    expect(errorMessage).toBe('p1');
-
-    const isOnPhoneNumberScreen = await phoneNumberPage.isOnPhoneNumberScreen();
-    expect(isOnPhoneNumberScreen).toBeTruthy();
-
-    const isOnOTPVerificationScreen = await phoneNumberPage.isOnOTPVerificationScreen();
-    expect(isOnOTPVerificationScreen).toBeFalsy();
+    await phoneNumberScreen.open();
+    await phoneNumberScreen.selectLanguage('p1');
+    await phoneNumberScreen.enterPhoneNumber('p1');
+    await phoneNumberScreen.clickButton('p1');
+    await phoneNumberScreen.verifyErrorMessage('p1');
+    await phoneNumberScreen.verifyOnPhoneNumberScreen();
+    await phoneNumberScreen.verifyNotOnOtpScreen();
   });
 });
