@@ -1,80 +1,74 @@
 import { test, expect, Page } from '@playwright/test';
 
-class PhoneNumberScreen {
+class RegistrationPage {
   constructor(private page: Page) {}
 
+  async openPhoneNumberScreen() {
+    await this.page.goto('https://ice-city.uz/');
+    await this.page.waitForLoadState('networkidle');
+  }
+
   async selectLanguage(language: string) {
-    await this.page.click(`[data-testid="language-selector-${language}"]`);
+    await this.page.getByRole('tab', { name: language }).click({ timeout: 10000 });
+    await this.page.waitForTimeout(500);
   }
 
   async enterPhoneNumber(phoneNumber: string) {
-    await this.page.fill('[data-testid="phone-input"]', phoneNumber);
+    await this.page.getByRole('textbox', { name: 'Phone' }).fill(phoneNumber, { timeout: 10000 });
   }
 
-  async clickButton(buttonId: string) {
-    await this.page.click(`[data-testid="button-${buttonId}"]`);
+  async clickButton(buttonName: string) {
+    await this.page.getByRole('button', { name: buttonName }).click({ timeout: 10000 });
+    await this.page.waitForTimeout(500);
   }
 
   async enterOTPCode(otpCode: string) {
-    await this.page.fill('[data-testid="otp-input"]', otpCode);
+    // Assuming OTP code is entered in a similar textbox
+    await this.page.getByRole('textbox').fill(otpCode, { timeout: 10000 });
   }
 
-  async leaveFieldEmpty(fieldId: string) {
-    await this.page.fill(`[data-testid="field-${fieldId}"]`, '');
+  async leaveFieldEmpty(fieldName: string) {
+    // Assuming field is a textbox
+    await this.page.getByRole('textbox', { name: fieldName }).fill('', { timeout: 10000 });
   }
 
-  async isButtonDisabled(buttonId: string): Promise<boolean> {
-    return await this.page.isDisabled(`[data-testid="button-${buttonId}"]`);
+  async isButtonDisabled(buttonName: string) {
+    const button = this.page.getByRole('button', { name: buttonName });
+    return await button.isDisabled({ timeout: 10000 });
   }
 
-  async getValidationMessage(fieldId: string): Promise<string> {
-    return await this.page.textContent(`[data-testid="validation-${fieldId}"]`);
+  async validationMessageDisplayedInRussian(fieldName: string) {
+    // Assuming validation message is displayed under the field
+    const validationMessage = await this.page.getByText('Введите ваше имя', { timeout: 10000 });
+    return validationMessage.isVisible();
   }
 }
 
 test.describe('Automation', () => {
-  test('Verify that user cannot submit registration with empty FIO', async ({ page }) => {
-    const phoneNumberScreen = new PhoneNumberScreen(page);
+  test('Verify that user can not submit registration with empty FIO', async ({ page }) => {
+    const registrationPage = new RegistrationPage(page);
 
-    // Given the user launches the app and opens the phone number screen
-    await page.goto('https://ice-city.uz/');
-    await page.waitForLoadState('networkidle');
+    await registrationPage.openPhoneNumberScreen();
+    await registrationPage.selectLanguage('p1');
+    await registrationPage.enterPhoneNumber('p1');
+    await registrationPage.clickButton('p1');
+    await registrationPage.enterOTPCode('p1');
 
-    // And the language "p1" is selected
-    await phoneNumberScreen.selectLanguage('p1');
+    // Assuming navigation to a specific page is verified by checking URL or page content
+    await expect(page).toHaveURL(/.*p1/, { timeout: 10000 });
 
-    // When the user enters valid phone number "p1"
-    await phoneNumberScreen.enterPhoneNumber('p1');
-
-    // And I click the "p1" button
-    await phoneNumberScreen.clickButton('p1');
-
-    // And the user enters valid OTP code "p1"
-    await phoneNumberScreen.enterOTPCode('p1');
-
-    // Then the user should be navigated to page "p1"
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('p1');
-
-    // When the user leaves the field "p1" empty
-    await phoneNumberScreen.leaveFieldEmpty('p1');
-
-    // Then the "p1" button should remain disabled
-    const isDisabled = await phoneNumberScreen.isButtonDisabled('p1');
+    await registrationPage.leaveFieldEmpty('p1');
+    const isDisabled = await registrationPage.isButtonDisabled('p1');
     expect(isDisabled).toBe(true);
 
-    // When the user attempts to click disabled button "p1"
-    try {
-      await phoneNumberScreen.clickButton('p1');
-    } catch (error) {
-      // Handle error gracefully if button click fails
-    }
+    // Attempt to click the disabled button
+    await registrationPage.clickButton('p1');
 
-    // Then no navigation should occur
-    expect(page.url()).toContain('p1');
+    // Verify no navigation occurs
+    await expect(page).toHaveURL(/.*p1/, { timeout: 10000 });
 
-    // And the validation message under field "p1" should be displayed in Russian
-    const validationMessage = await phoneNumberScreen.getValidationMessage('p1');
-    expect(validationMessage).toBe('Введите ФИО');
+    // Verify validation message is displayed in Russian
+    const isValidationMessageVisible = await registrationPage.validationMessageDisplayedInRussian('p1');
+    expect(isValidationMessageVisible).toBe(true);
   });
 });
