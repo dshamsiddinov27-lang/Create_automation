@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'ai-tests-*'
+      - 'ai-generated-tests-*'
   workflow_dispatch:
 
 jobs:
@@ -21,6 +22,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run tests
         run: npx playwright test --reporter=html
+        env:
+          BASE_URL: ${{ secrets.BASE_URL || 'https://ice-city.uz/' }}
       - name: Upload report
         uses: actions/upload-artifact@v4
         if: always()
