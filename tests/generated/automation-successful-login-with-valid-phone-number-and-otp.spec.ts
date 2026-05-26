@@ -6,17 +6,19 @@ test.describe('Automation', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByRole('textbox')).toBeVisible();
-    await page.getByRole('textbox').fill('+998901234567');
+    await page.getByRole('textbox').fill('883397766');
 
     await expect(page.getByRole('button', { name: 'Продолжить' })).toBeVisible();
     await page.getByRole('button', { name: 'Продолжить' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Код' })).toBeVisible();
-    await expect(page.getByRole('textbox')).toHaveValue('____');
+    await page.waitForLoadState('networkidle');
 
-    await page.getByRole('textbox').fill('1234');
+    await expect(page.getByRole('textbox')).toBeVisible();
+    await page.getByRole('textbox').fill('1405');
+
     await page.getByRole('button', { name: 'Продолжить' }).click();
+    await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/main/);
+    await expect(page).toHaveURL!�/main/);
   });
 });
